@@ -73,39 +73,39 @@ var _ Conn = (*testWS)(nil)
 
 func TestManager_RegisterEvent(t *testing.T) {
 	m := EvtClient{
-		trackedEvents: &UniqueStringSlice{},
+		ignoreEvents: &UniqueStringSlice{},
 	}
 	t1 := "test"
 	m.RegisterEvent(t1)
 
-	if m.trackedEvents.Len() == 0 {
+	if m.ignoreEvents.Len() == 0 {
 		t.Error("expected length to be 1, got 0")
 	}
 
 	m.RegisterEvent(t1)
-	if m.trackedEvents.Len() == 2 {
+	if m.ignoreEvents.Len() == 2 {
 		t.Error("expected length to be 1, got 2")
 	}
 }
 
 func TestManager_RemoveEvent(t *testing.T) {
 	m := EvtClient{
-		trackedEvents: &UniqueStringSlice{},
+		ignoreEvents: &UniqueStringSlice{},
 	}
 	t1 := "test"
 	m.RegisterEvent(t1)
 
-	if m.trackedEvents.Len() == 0 {
+	if m.ignoreEvents.Len() == 0 {
 		t.Error("expected length to be 1, got 0")
 	}
 
 	m.RemoveEvent("sdfsdf")
-	if m.trackedEvents.Len() == 0 {
+	if m.ignoreEvents.Len() == 0 {
 		t.Error("expected length to be 1, got 0")
 	}
 
 	m.RemoveEvent(t1)
-	if m.trackedEvents.Len() == 1 {
+	if m.ignoreEvents.Len() == 1 {
 		t.Error("expected length to be 0, got 1")
 	}
 }

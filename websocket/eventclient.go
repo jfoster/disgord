@@ -23,8 +23,8 @@ import (
 // NewManager creates a new socket client manager for handling behavior and Discord events. Note that this
 // function initiates a go routine.
 func NewEventClient(conf *EvtConfig, shardID uint) (client *EvtClient, err error) {
-	if conf.TrackedEvents == nil {
-		conf.TrackedEvents = &UniqueStringSlice{}
+	if conf.IgnoreEvents == nil {
+		conf.IgnoreEvents = &UniqueStringSlice{}
 	}
 
 	if conf.SystemShutdown == nil {
@@ -40,10 +40,10 @@ func NewEventClient(conf *EvtConfig, shardID uint) (client *EvtClient, err error
 	}
 
 	client = &EvtClient{
-		conf:          conf,
-		trackedEvents: conf.TrackedEvents,
-		eventChan:     eChan,
-		a:             conf.A,
+		conf:         conf,
+		ignoreEvents: conf.IgnoreEvents,
+		eventChan:    eChan,
+		a:            conf.A,
 	}
 	client.client, err = newClient(&config{
 		Logger:         conf.Logger,
@@ -100,9 +100,8 @@ type EvtConfig struct {
 	// ChannelBuffer is used to set the event channel buffer
 	ChannelBuffer uint
 
-	// TrackedEvents holds a list of predetermined events that should not be ignored.
-	// This is especially useful for creating multiple shards, to reuse the same slice
-	TrackedEvents *UniqueStringSlice
+	// IgnoreEvents holds a list of predetermined events that should be ignored.
+	IgnoreEvents *UniqueStringSlice
 
 	// EventChan can be used to inject a channel instead of letting the ws client construct one
 	// useful in sharding to avoid complicated patterns to handle N channels.
@@ -141,8 +140,8 @@ type EvtClient struct {
 	*client
 	ReadyCounter uint
 
-	eventChan     chan<- *Event
-	trackedEvents *UniqueStringSlice
+	eventChan    chan<- *Event
+	ignoreEvents *UniqueStringSlice
 
 	sessionID      string
 	sequenceNumber uint
@@ -320,7 +319,7 @@ func (c *EvtClient) onDiscordEvent(v interface{}) (err error) {
 	//	}
 	//}
 
-	if !c.eventOfInterest(p.EventName) {
+	if c.ignoreEvents.Contains(p.EventName) {
 		return nil
 	}
 
@@ -421,22 +420,6 @@ func (c *EvtClient) Connect() (err error) {
 	//_, err = c.client.Connect(timeout, opcode.EventReadyResumed)
 	_, err = c.client.Connect(opcode.NoOPCode)
 	return
-}
-
-// RegisterEvent tells the socket layer which event types are of interest. Any event that are not registered
-// will be discarded once the socket info is extracted from the event.
-func (c *EvtClient) RegisterEvent(event string) {
-	c.trackedEvents.Add(event)
-}
-
-// RemoveEvent removes an event type from the registry. This will cause the event type to be discarded
-// by the socket layer.
-func (c *EvtClient) RemoveEvent(event string) {
-	c.trackedEvents.Remove(event)
-}
-
-func (c *EvtClient) eventOfInterest(name string) bool {
-	return c.trackedEvents.Exists(name)
 }
 
 func (c *EvtClient) sendHelloPacket() {

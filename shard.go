@@ -44,7 +44,7 @@ func NewShardManager(conf *Config) *WSShardManager {
 		identifyRatelimit: 5,
 		shutdownChan:      conf.shutdownChan,
 		Presence:          conf.Presence,
-		TrackEvent:        &websocket.UniqueStringSlice{},
+		IgnoreEvents:      &websocket.UniqueStringSlice{},
 		discordPktPool: &sync.Pool{
 			New: func() interface{} {
 				return &websocket.DiscordPacket{}
@@ -58,9 +58,9 @@ type WSShardManager struct {
 
 	evtChan chan *websocket.Event
 
-	shards     []*WSShard
-	conf       *WSShardManagerConfig
-	TrackEvent *websocket.UniqueStringSlice
+	shards       []*WSShard
+	conf         *WSShardManagerConfig
+	IgnoreEvents *websocket.UniqueStringSlice
 
 	identifyRatelimit float64 // seconds
 	previousIdentify  time.Time
@@ -136,7 +136,7 @@ func (s *WSShardManager) Prepare(conf *Config) error {
 	var err error
 	for i := range s.shards {
 		s.shards[i] = &WSShard{}
-		err = s.shards[i].Prepare(conf, s.discordPktPool, s.evtChan, s.conRequestChan, s.TrackEvent, conf.WSShardManagerConfig.FirstID+uint(i))
+		err = s.shards[i].Prepare(conf, s.discordPktPool, s.evtChan, s.conRequestChan, s.IgnoreEvents, conf.WSShardManagerConfig.FirstID+uint(i))
 		if err != nil {
 			break
 		}
@@ -341,7 +341,7 @@ func (s *WSShard) Prepare(conf *Config, discordPktPool *sync.Pool, evtChan chan 
 		ChannelBuffer:  3,
 		Endpoint:       conf.WSShardManagerConfig.URL,
 		EventChan:      evtChan,
-		TrackedEvents:  trackEvents,
+		IgnoreEvents:   trackEvents,
 		Logger:         conf.Logger,
 		A:              conRequestChan,
 		DiscordPktPool: discordPktPool,

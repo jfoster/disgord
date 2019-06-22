@@ -98,32 +98,6 @@ func NewClient(conf *Config) (c *Client, err error) {
 		if err != nil {
 			return nil, err
 		}
-
-		// register for events for activate caches
-		if !conf.CacheConfig.DisableUserCaching {
-			sharding.TrackEvent.Add(event.Ready)
-			sharding.TrackEvent.Add(event.UserUpdate)
-		}
-		if !conf.CacheConfig.DisableChannelCaching {
-			sharding.TrackEvent.Add(event.ChannelCreate)
-			sharding.TrackEvent.Add(event.ChannelUpdate)
-			sharding.TrackEvent.Add(event.ChannelPinsUpdate)
-			sharding.TrackEvent.Add(event.ChannelDelete)
-		}
-		if !conf.CacheConfig.DisableGuildCaching {
-			sharding.TrackEvent.Add(event.GuildCreate)
-			sharding.TrackEvent.Add(event.GuildDelete)
-			sharding.TrackEvent.Add(event.GuildUpdate)
-			sharding.TrackEvent.Add(event.GuildEmojisUpdate)
-			sharding.TrackEvent.Add(event.GuildMemberAdd)
-			sharding.TrackEvent.Add(event.GuildMemberRemove)
-			sharding.TrackEvent.Add(event.GuildMembersChunk)
-			sharding.TrackEvent.Add(event.GuildMemberUpdate)
-			sharding.TrackEvent.Add(event.GuildRoleCreate)
-			sharding.TrackEvent.Add(event.GuildRoleDelete)
-			sharding.TrackEvent.Add(event.GuildRoleUpdate)
-			sharding.TrackEvent.Add(event.GuildIntegrationsUpdate)
-		}
 	} else {
 		// create an empty cache to avoid nil panics
 		cacher, err = newCache(&CacheConfig{
@@ -136,10 +110,6 @@ func NewClient(conf *Config) (c *Client, err error) {
 			return nil, err
 		}
 	}
-
-	// Required for voice operation
-	sharding.TrackEvent.Add(event.VoiceStateUpdate)
-	sharding.TrackEvent.Add(event.VoiceServerUpdate)
 
 	// event dispatcher
 	dispatch := newDispatcher()
@@ -582,7 +552,7 @@ func (c *Client) On(event string, inputs ...interface{}) {
 	if err := ValidateHandlerInputs(inputs...); err != nil {
 		panic(err)
 	}
-	c.shardManager.TrackEvent.Add(event)
+	c.shardManager.IgnoreEvents.Add(event)
 
 	if err := c.dispatcher.register(event, inputs...); err != nil {
 		panic(err)
@@ -603,7 +573,7 @@ func (c *Client) Emit(command SocketCommand, data interface{}) error {
 // to reduce unnecessary marshalling and controls.
 func (c *Client) AcceptEvent(events ...string) {
 	for _, evt := range events {
-		c.shardManager.TrackEvent.Add(evt)
+		c.shardManager.IgnoreEvents.Add(evt)
 	}
 }
 
